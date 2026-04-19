@@ -1,0 +1,25 @@
+springfox:
+  documentation:
+    swagger:
+      v2:
+        path: /api-docs
+
+server:
+  servlet:
+    context-path: /
+  port: 18081
+
+spring:
+  jackson:
+    date-format: com.wizteco.helloworld.RFC3339DateFormat
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+
+search:
+  baidu:
+    key: baidu
+    home-url: https://www.baidu.com
+    search-url: https://www.baidu.com/s
+    query-param: wd
+    connect-timeout-ms: 3000
+    read-timeout-ms: 5000
