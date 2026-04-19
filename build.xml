@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="springboot-hello-api" default="usage" basedir=".">
+	<property file="build.properties" />
+
+	<!--For install image and chart-->
+	<property name="dir.docker" value="docker" description="./docker" />
+	<property name="dir.chart" value="chart" description="./chart" />
+	<!--For maven package-->
+	<property name="dir.src" value="src" description="./src" />
+	<property name="dir.lib" value="${dist_lib}" description="${dist_lib}" />
+	<property name="dir.target" value="target" description="./target" />
+	<!--For run docker,helm-->
+	<property name="dir.dist" value="../dist" description="docker,helm" />
+	<property name="dir.dist.abs" location="../dist" relative="true" />
+	<property name="jdk.tgz" value="openjdk-17.0.2_linux-x64_bin.tar.gz" description="docker,helm" />
+	<property name="jdk-open17" value="jdk-open17" description="docker,helm" />
+
+	<target name="init">
+		<mkdir dir="${dir.dist}" />
+		<mkdir dir="${dir.dist}/${ant.project.name}" />
+		<mkdir dir="${dir.dist}/docker/${ant.project.name}" />
+		<mkdir dir="${dir.dist}/chart/${ant.project.name}" />
+
+		<echo message="REQUIRED by jdk-open17: upload ${jdk.tgz} to ${dir.dist}" />
+		<echo message="REQUIRED by jdk-open17: docker pull centos:7" />
+	</target>
+	<target name="clean" depends="init">
+		<delete>
+			<fileset dir="${dir.dist}">
+				<include name="build.properties" />
+				<include name="deploy.sh" />
+			</fileset>
+		</delete>
+		<copy todir="${dir.dist}">
+			<fileset dir=".">
+				<include name="build.properties" />
+				<include name="deploy.sh" />
+			</fileset>
+		</copy>
+		<delete>
+			<fileset dir="${dir.dist}/docker/${ant.project.name}" includes="**/*" />
+		</delete>
+		<delete>
+			<fileset dir="${dir.dist}/chart/${ant.project.name}" includes="**/*" />
+		</delete>
+	</target>
+
+	<path id="ant.classpath">
+		<fileset dir="${dir.lib}">
+			<include name="*.jar" />
+		</fileset>
+		<fileset dir="target">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+	<target name="declare">
+		<taskdef name="mergePom" classname="com.darwintek.ant.MergePom" classpathref="ant.classpath">
+		</taskdef>
+		<taskdef name="pfcJar" classname="com.darwintek.ant.PfcJar" classpathref="ant.classpath">
+		</taskdef>
+	</target>
+	<target name="maven.spring-boot" depends="declare">
+		<mergePom pomDir="." pomAssemblyFile="maven.spring-boot.xml" pomAssemblyProperties="build.properties" />
+	</target>
+	<target name="pfc.project-deploy" depends="declare">
+		<pfcJar basePackageOrClassNameList="metbiz,com.darwintek,com.wizteco,com.mobilinksys,salesmet" originJarPath="target/${dist_project}-${dist_version}.jar" encryptedJarPath="target/${dist_project}-pfc-${dist_version}.jar" />
+	</target>
+	<target name="docker-open17">
+		<mkdir dir="${dir.dist}/docker/${jdk-open17}" />
+		<copy todir="${dir.dist}/docker/${jdk-open17}">
+			<fileset dir="${dir.docker}/jdk-open17">
+				<include name="*" />
+			</fileset>
+		</copy>
+		<mkdir dir="${dir.dist}/docker/${jdk-open17}/dist" />
+		<copy tofile="${dir.dist}/docker/${jdk-open17}/dist/${jdk.tgz}" file="${dir.dist}/${jdk.tgz}" />
+
+		<echo message="Run docker build..." />
+		<exec dir="${dir.dist}" executable="/bin/bash">
+			<arg line="deploy.sh ${dir.dist.abs} ${ant.project.name} docker-open17" />
+		</exec>
+	</target>
+
+	<target name="dist-jar">
+		<unzip src="target/${dist_project}-server-${dist_version}.jar" dest="target/${dist_project}-server">
+			<patternset>
+				<include name="**/*" />
+			</patternset>
+		</unzip>
+		<copy tofile="target/${dist_project}-server/BOOT-INF/lib/${dist_project}-${dist_version}.jar" file="target/${dist_project}-pfc-${dist_version}.jar" />
+		<copy todir="target/${dist_project}-server/BOOT-INF/lib">
+			<fileset dir="${dir.lib}">
+				<include name="javassist-*.jar" />
+				<include name="spring-core-*.jar" />
+				<include name="pfund-csec-decryt-*.jar" />
+			</fileset>
+		</copy>
+		<delete>
+			<fileset dir="target/${dist_project}-server/BOOT-INF/classes/">
+				<include name="**/*.class" />
+			</fileset>
+		</delete>
+		<delete>
+			<fileset dir="target/${dist_project}-server/META-INF/">
+				<include name="maven/**/*" />
+			</fileset>
+		</delete>
+		<jar compress="false" destfile="target/${dist_project}-server.jar" basedir="target/${dist_project}-server" manifest="target/${dist_project}-server/META-INF/MANIFEST.MF" />
+	</target>
+	<target name="dist-image">
+		<copy todir="${dir.dist}/docker/${ant.project.name}">
+			<fileset dir="${dir.docker}/${ant.project.name}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+		<mkdir dir="${dir.dist}/docker/${ant.project.name}/dist" />
+		<copy todir="${dir.dist}/docker/${ant.project.name}/dist">
+			<fileset dir="${dir.lib}">
+				<include name="libsg.so" />
+			</fileset>
+		</copy>
+		<copy tofile="${dir.dist}/docker/${ant.project.name}/dist/${dist_dockerJar}" file="target/${dist_project}-server.jar" />
+	</target>
+	<target name="docker-image" depends="dist-image">
+
+		<echo message="Run docker build..." />
+		<exec dir="${dir.dist}" executable="/bin/bash">
+			<arg line="deploy.sh ${dir.dist.abs} ${ant.project.name} docker-image" />
+		</exec>
+	</target>
+	<target name="harbor-image">
+
+		<echo message="Run helm push..." />
+		<exec dir="${dir.dist}" executable="/bin/bash">
+			<arg line="deploy.sh ${dir.dist.abs} ${ant.project.name} harbor-image" />
+		</exec>
+	</target>
+
+	<target name="dist-chart">
+		<copy todir="${dir.dist}/chart/${ant.project.name}">
+			<fileset dir="${dir.chart}/${ant.project.name}">
+				<include name="**/*" />
+			</fileset>
+		</copy>
+	</target>
+	<target name="version-chart" depends="dist-chart">
+		<echo message="sed helm_versn into chart." />
+		<exec dir="${dir.dist}" executable="/bin/bash">
+			<arg line="deploy.sh ${dir.dist.abs} ${ant.project.name} version-chart" />
+		</exec>
+	</target>
+
+	<target name="harbor-chart">
+		<echo message="Run helm push." />
+		<exec dir="${dir.dist}" executable="/bin/bash">
+			<arg line="deploy.sh ${dir.dist.abs} ${ant.project.name} harbor-chart" />
+		</exec>
+	</target>
+
+	<target name="install-all" depends="clean,docker-image,harbor-image,version-chart,harbor-chart">
+		<echo message="Hello, world" />
+
+	</target>
+	<target name="usage" depends="init">
+		<echo message="step-1: mvn -Dmaven.test.skip.exec clean deploy" />
+		<echo message="step-2: (secure) ant pfc.project-deploy" />
+		<echo message="step-3: ant maven.spring-boot" />
+		<echo message="step-4: mvn -Dmaven.test.skip.exec -f pom-pack.xml package" />
+		<echo message="step-5: (secure) ant dist-jar" />
+		<echo message="step-6: ant install-all" />
+		<echo message="change to dir[${dir.dist}], use cmd[/bin/bash deploy.sh]." />
+		<echo message="e.g. /bin/bash deploy.sh ${dir.dist} ${ant.project.name} k3s-list" />
+	</target>
+
+</project>

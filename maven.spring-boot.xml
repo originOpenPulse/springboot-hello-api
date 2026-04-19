@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<artifactId>%dist_project%-server</artifactId>
+	<dependencies>
+		<dependency>
+			<groupId>com.wizteco</groupId>
+			<artifactId>%dist_project%</artifactId>
+			<version>%dist_version%</version>
+		</dependency>
+	</dependencies>
+	<build>
+		<sourceDirectory>src/main/java</sourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>com.wizteco.helloworld.HelloApp</mainClass>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>repackage</goal>
+						</goals>
+						<configuration>
+							<includeSystemScope>true</includeSystemScope>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-antrun-plugin</artifactId>
+			<version>3.1.0</version>
+			<executions>
+				<execution>
+					<goals>
+						<goal>run</goal>
+					</goals>
+					<phase>generate-sources</phase>
+					<configuration>
+						<target>
+							
+						</target>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+		</plugins>
+		
+
+	</build>
+</project>

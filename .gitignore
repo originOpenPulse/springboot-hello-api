@@ -1,0 +1,10 @@
+/target/
+/.settings/
+/.claude/
+/.claude-resources/
+/.skills/
+/.tasks/
+/.classpath
+/.project
+/*.log
+/dist/
